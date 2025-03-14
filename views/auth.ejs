@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Authentication</title>
+    <style>
+      :root {
+        --primary-color: #4a90e2;
+        --error-color: #e74c3c;
+        --success-color: #2ecc71;
+        --text-color: #2c3e50;
+        --border-color: #bdc3c7;
+      }
+
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        line-height: 1.6;
+        background-color: #f5f6fa;
+        color: var(--text-color);
+      }
+
+      .container {
+        max-width: 400px;
+        margin: 50px auto;
+        padding: 30px;
+        background: white;
+        border-radius: 10px;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .form-title {
+        text-align: center;
+        margin-bottom: 30px;
+        color: var(--primary-color);
+      }
+
+      .form-group {
+        margin-bottom: 20px;
+      }
+
+      label {
+        display: block;
+        margin-bottom: 5px;
+        font-weight: 500;
+      }
+
+      input {
+        width: 100%;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        font-size: 16px;
+        transition: border-color 0.3s ease;
+      }
+
+      input:focus {
+        outline: none;
+        border-color: var(--primary-color);
+      }
+
+      button {
+        width: 100%;
+        padding: 12px;
+        background-color: var(--primary-color);
+        color: white;
+        border: none;
+        border-radius: 5px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #357abd;
+      }
+
+      .toggle-form {
+        text-align: center;
+        margin-top: 20px;
+      }
+
+      .toggle-btn {
+        background: none;
+        border: none;
+        color: var(--primary-color);
+        cursor: pointer;
+        font-size: 14px;
+        text-decoration: underline;
+      }
+
+      .error-message {
+        color: var(--error-color);
+        font-size: 14px;
+        margin-top: 5px;
+        display: none;
+      }
+
+      .success-message {
+        color: var(--success-color);
+        text-align: center;
+        margin-bottom: 20px;
+        display: none;
+      }
+
+      .social-login {
+        margin-top: 20px;
+        text-align: center;
+      }
+
+      .social-btn {
+        width: 100%;
+        margin: 10px 0;
+        padding: 12px;
+        border: 1px solid var(--border-color);
+        border-radius: 5px;
+        background: white;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      .social-btn:hover {
+        background-color: #f5f6fa;
+      }
+
+      .loading {
+        display: none;
+        text-align: center;
+        margin-top: 10px;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div id="successMessage" class="success-message"></div>
+      <div id="errorMessage" class="error-message"></div>
+
+      <!-- Login Form -->
+      <form id="loginForm" onsubmit="return handleLogin(event)">
+        <h2>Login</h2>
+        <div class="form-group">
+          <label for="loginEmail">Email:</label>
+          <input type="email" id="loginEmail" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="loginPassword">Password:</label>
+          <input type="password" id="loginPassword" name="password" required />
+        </div>
+        <button type="submit">Login</button>
+      </form>
+
+      <!-- Sign Up Form -->
+      <form
+        id="signupForm"
+        onsubmit="return handleSignup(event)"
+        style="display: none"
+      >
+        <h2>Sign Up</h2>
+        <div class="form-group">
+          <label for="signupEmail">Email:</label>
+          <input type="email" id="signupEmail" name="email" required />
+        </div>
+        <div class="form-group">
+          <label for="username">Username:</label>
+          <input type="text" id="username" name="username" required />
+        </div>
+        <div class="form-group">
+          <label for="firstName">First Name:</label>
+          <input type="text" id="firstName" name="firstName" required />
+        </div>
+        <div class="form-group">
+          <label for="lastName">Last Name:</label>
+          <input type="text" id="lastName" name="lastName" required />
+        </div>
+        <div class="form-group">
+          <label for="signupPassword">Password:</label>
+          <input type="password" id="signupPassword" name="password" required />
+        </div>
+        <button type="submit">Sign Up</button>
+      </form>
+
+      <p class="toggle-form" onclick="toggleForms()">
+        <span id="toggleText">Don't have an account? Sign up</span>
+      </p>
+
+      <div class="social-login">
+        <button type="button" class="social-btn" onclick="handleGoogleLogin()">
+          Continue with Google
+        </button>
+      </div>
+    </div>
+
+    <script>
+      async function handleLogin(event) {
+        event.preventDefault();
+        const email = document.getElementById("loginEmail").value;
+        const password = document.getElementById("loginPassword").value;
+
+        try {
+          const response = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ email, password }),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showSuccess(data.message);
+            localStorage.setItem("token", data.data.tokens.accessToken);
+            window.location.href = "/dashboard"; // Redirect to dashboard
+          } else {
+            showError(data.message);
+          }
+        } catch (error) {
+          showError("An error occurred. Please try again.");
+        }
+      }
+
+      async function handleSignup(event) {
+        event.preventDefault();
+        const formData = {
+          email: document.getElementById("signupEmail").value,
+          username: document.getElementById("username").value,
+          firstName: document.getElementById("firstName").value,
+          lastName: document.getElementById("lastName").value,
+          password: document.getElementById("signupPassword").value,
+        };
+
+        try {
+          const response = await fetch("/api/auth/register", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify(formData),
+          });
+
+          const data = await response.json();
+
+          if (response.ok) {
+            showSuccess(data.message);
+            setTimeout(() => toggleForms(), 2000);
+          } else {
+            showError(
+              Array.isArray(data.errors) ? data.errors.join("\n") : data.message
+            );
+          }
+        } catch (error) {
+          showError("An error occurred. Please try again.");
+        }
+      }
+
+      function toggleForms() {
+        const loginForm = document.getElementById("loginForm");
+        const signupForm = document.getElementById("signupForm");
+        const toggleText = document.getElementById("toggleText");
+
+        if (loginForm.style.display === "none") {
+          loginForm.style.display = "block";
+          signupForm.style.display = "none";
+          toggleText.textContent = "Don't have an account? Sign up";
+        } else {
+          loginForm.style.display = "none";
+          signupForm.style.display = "block";
+          toggleText.textContent = "Already have an account? Login";
+        }
+        // Clear messages when toggling forms
+        clearMessages();
+      }
+
+      function showSuccess(message) {
+        const successElement = document.getElementById("successMessage");
+        successElement.textContent = message;
+        successElement.style.display = "block";
+        setTimeout(() => {
+          successElement.style.display = "none";
+        }, 3000);
+      }
+
+      function showError(message) {
+        const errorElement = document.getElementById("errorMessage");
+        errorElement.textContent = message;
+        errorElement.style.display = "block";
+      }
+
+      function clearMessages() {
+        document.getElementById("successMessage").style.display = "none";
+        document.getElementById("errorMessage").style.display = "none";
+      }
+
+      function handleGoogleLogin() {
+        window.location.href = "/api/auth/google";
+      }
+    </script>
+  </body>
+</html>
